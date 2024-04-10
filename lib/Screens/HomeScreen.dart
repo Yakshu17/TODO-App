@@ -9,8 +9,9 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 class _HomeScreenState extends State<HomeScreen> {
+  bool isloading =true;
+  List items = [];
   @override
-  List items =[];
   void initState() {
     super.initState();
     fetchTodo();
@@ -18,77 +19,91 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Todo List',style: TextStyle(color: Colors.white),),
+        title: const Text(
+          'Todo List',
+          style: TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
-        elevation: 40,
-        backgroundColor: Colors.black54,
+        elevation: 15,
+        backgroundColor: Colors.orange,
       ),
-      body: RefreshIndicator(
-        onRefresh: fetchTodo,
-        child: ListView.builder(
-          itemCount: items.length,
-            itemBuilder: (context,index){
-            final item=items[index];
-            final id =item['_id'] as String;
-            return ListTile(
-              trailing: PopupMenuButton(onSelected: (value){
-                if(value =='edit'){
-                  //open edit page
-                  navigatetoeditpage(item);
-                }
-                else if(value == 'delete'){
-                  //delete and remove the item
-                  deleteById(id);
-                }
-              },
-                itemBuilder:(context) {
-                return [
-                  PopupMenuItem(child: Text('Edit'),value: 'edit',),
-                  PopupMenuItem(child: Text('Delete'),value: 'delete',),
-
-                ];
-              },),
-        leading: CircleAvatar(child: Text('${index+1}')),
-              title: Text(item['title']),
-        subtitle: Text(item['description']),
-            );
-
+      body: Visibility(
+        visible: isloading,
+    replacement: RefreshIndicator(color: Colors.orange,
+          onRefresh: fetchTodo,
+          child: ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final id = item['_id'] as String;
+              return ListTile(
+                trailing: PopupMenuButton(
+                  onSelected: (value) {
+                    if (value == 'delete') {
+                      //delete and remove the item
+                      deleteById(id);
+                    }
+                  },
+                  itemBuilder: (context) {
+                    return [
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text('Delete'),
+                      ),
+                    ];
+                  },
+                ),
+                leading: CircleAvatar(
+                    backgroundColor: Colors.orange.shade100,
+                    child: Text('${index + 1}')),
+                title: Text(
+                  item['title'],
+                  style: const TextStyle(color: Colors.blueAccent),
+                ),
+                subtitle: Text(
+                  item['description'],
+                  style: const TextStyle(color: Colors.blueAccent),
+                ),
+              );
             },
-            ),
+          ),
+        ),
+        child: const Center(child: CircularProgressIndicator(color: Colors.orange,),),
       ),
-      floatingActionButton: FloatingActionButton.extended(backgroundColor: Colors.black54,
-        onPressed: (){
-          Navigator.of(context).push(MaterialPageRoute(builder: (context) => const AddTaskScreen(),));
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.orange,
+        onPressed: () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (context) => const AddTaskScreen(),
+          ));
         },
-        label: const Text('Add Task',style: TextStyle(color: Colors.white),),
+        label: const Text(
+          'Add Task',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
     );
   }
-
+  // This Function is used to delete the task with the help of ID in random APIs.
   Future<void> deleteById(String id) async {
-    final url ='https://api.nstack.in/v1/todos/$id';
+    final url = 'https://api.nstack.in/v1/todos/$id';
     final uri = Uri.parse(url);
-    final response =await http.delete(uri);
-    if(response.statusCode ==200){
+    final response = await http.delete(uri);
+    if (response.statusCode == 200) {
       //remove item from the list
       final filtered = items.where((element) => element['_id'] != id).toList();
       setState(() {
-        items=filtered;
+        items = filtered;
       });
-    }
-    else{
+    } else {
       //show error
     }
   }
-
-  void navigatetoeditpage(Map item){
-    final route= MaterialPageRoute(builder: (context) => AddTaskScreen(),);
-    Navigator.push(context, route);
-  }
-
+//This Function is used to fetch the data from random APIs (JSON Data).
   Future<void> fetchTodo() async {
-    final url = 'https://api.nstack.in/v1/todos?page=1&limit=10';
+    const url = 'https://api.nstack.in/v1/todos?page=1&limit=10';
     final uri = Uri.parse(url);
     final response = await http.get(uri);
     if (response.statusCode == 200) {
@@ -97,9 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         items = result;
       });
+    } else {
+      //show error
     }
-    else {
-
-    }
+    setState(() {
+      isloading=false;
+    });
   }
 }
